@@ -39,9 +39,9 @@ func main() {
 	}
 
 	mux.Handle("/app/", http.StripPrefix("/app", cfg.middlewareMetricsInc(fileServer)))
-	mux.HandleFunc("/healthz", handleReadiness)
-	mux.HandleFunc("/metrics", cfg.handleMetrics)
-	mux.HandleFunc("/reset", cfg.handleReset)
+	mux.HandleFunc("GET /healthz", handleReadiness)
+	mux.HandleFunc("GET /metrics", cfg.handleMetrics)
+	mux.HandleFunc("POST /reset", cfg.handleReset)
 
 	fmt.Printf("Serving files from %s on port %s\n", filepathRoot, port)
 	log.Fatal(srv.ListenAndServe())
