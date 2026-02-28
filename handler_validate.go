@@ -2,45 +2,52 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 )
 
-func handleChirpsValidate(w http.ResponseWriter, r *http.Request) {
+func handlerChirpsValidate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
 	}
 	type returnVals struct {
 		CleanedBody string `json:"cleaned_body"`
 	}
-	dec := json.NewDecoder(r.Body)
-	params := parameters{}
 
-	if err := dec.Decode(&params); err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error decoding parameters: %s", err))
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
+
 	const maxChirpLength = 140
 	if len(params.Body) > maxChirpLength {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
-	cleaned := cleanMessage(params.Body)
+
+	badWords := map[string]struct{}{
+		"kerfuffle": {},
+		"sharbert":  {},
+		"fornax":    {},
+	}
+	cleaned := getCleanedBody(params.Body, badWords)
 
 	respondWithJSON(w, http.StatusOK, returnVals{
 		CleanedBody: cleaned,
 	})
 }
 
-func cleanMessage(msg string) string {
-	words := strings.Split(msg, " ")
+func getCleanedBody(body string, badWords map[string]struct{}) string {
+	words := strings.Split(body, " ")
 	for i, word := range words {
-		word = strings.ToLower(word)
-		if word == "kerfuffle" || word == "sharbert" || word == "fornax" {
+		loweredWord := strings.ToLower(word)
+		if _, ok := badWords[loweredWord]; ok {
 			words[i] = "****"
 		}
 	}
-	msg = strings.Join(words, " ")
-	return msg
+	cleaned := strings.Join(words, " ")
+	return cleaned
 }
